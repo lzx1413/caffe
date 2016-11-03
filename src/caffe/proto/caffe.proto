@@ -509,7 +509,7 @@ message BatchNormParameter {
   optional float eps = 3 [default = 1e-5];
   //if false,mean and variance across instances. If true ,mean and variance will be 
   //accurate in single instance
-  optional bool use_instance_norm = 4 [default = true];
+  optional bool use_instance_norm = 4 [default = false];
 }
 
 message BiasParameter {
