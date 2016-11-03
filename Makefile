@@ -525,7 +525,7 @@ $(MAT$(PROJECT)_SO): $(MAT$(PROJECT)_SRC) $(STATIC_NAME)
 runtest: $(TEST_ALL_BIN)
 	$(TOOL_BUILD_DIR)/caffe
 	$(TEST_ALL_BIN) $(TEST_GPUID) --gtest_shuffle $(TEST_FILTER)
-TEST_INBN = ./.build_release/test/test_instance_batch_norm_layer.testbin 
+TEST_INBN = ./.build_release/test/test_batch_norm_layer.testbin 
 runtest_inbn: $(TEST_ALL_BIN)
 	$(TOOL_BUILD_DIR)/caffe
 	echo $(TEST_INBN)
