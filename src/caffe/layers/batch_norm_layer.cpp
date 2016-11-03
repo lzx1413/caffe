@@ -19,7 +19,7 @@ void BatchNormLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
     channels_ = 1;
   else
     channels_ = bottom[0]->shape(1);
-  batch_size_=bottom[0]->shape(0);
+  batch_size_ = bottom[0]->shape(0);
   eps_ = param.eps();
   if (this->blobs_.size() > 0) {
     LOG(INFO) << "Skipping parameter initialization";
@@ -62,7 +62,7 @@ void BatchNormLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom,
     CHECK_EQ(bottom[0]->shape(1), channels_);
   top[0]->ReshapeLike(*bottom[0]);
   vector<int> sz;
-  if(use_instance_norm_)
+  if (use_instance_norm_)
     sz.push_back(channels_*batch_size_);
   else
     sz.push_back(channels_);
@@ -102,14 +102,14 @@ void BatchNormLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
   if (bottom[0] != top[0]) {
     caffe_copy(bottom[0]->count(), bottom_data, top_data);
   }
-  if (pre_batch_size_ != num && use_instance_norm_){
+  if (pre_batch_size_ != num && use_instance_norm_) {
         vector<int> sz;
         sz.push_back(num*channels_);
         vector<int> tmp_size;
         tmp_size.push_back(channels_);
         Blob<Dtype> tmp_blob;
         tmp_blob.Reshape(tmp_size);
-        caffe_cpu_gemv<Dtype>(CblasTrans,pre_batch_size_, channels_, 1.,
+        caffe_cpu_gemv<Dtype>(CblasTrans, pre_batch_size_, channels_, 1.,
             this->blobs_[0]->cpu_data(), batch_sum_multiplier_.cpu_data(), 0.,
             tmp_blob.mutable_cpu_data());
         this->blobs_[0]->Reshape(sz);
@@ -117,7 +117,7 @@ void BatchNormLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
             batch_sum_multiplier_.cpu_data(), tmp_blob.cpu_data(), 0.,
             this->blobs_[0]->mutable_cpu_data());
 
-        caffe_cpu_gemv<Dtype>(CblasTrans,pre_batch_size_, channels_, 1.,
+        caffe_cpu_gemv<Dtype>(CblasTrans, pre_batch_size_, channels_, 1.,
             this->blobs_[1]->cpu_data(), batch_sum_multiplier_.cpu_data(), 0.,
             tmp_blob.mutable_cpu_data());
         this->blobs_[1]->Reshape(sz);
@@ -138,12 +138,12 @@ void BatchNormLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
         this->blobs_[1]->cpu_data(), variance_.mutable_cpu_data());
   } else {
     // compute mean
-    if (use_instance_norm_)
+    if (use_instance_norm_) {
         caffe_cpu_gemv<Dtype>(CblasNoTrans, channels_ * num, spatial_dim,
-            1. / ( spatial_dim), bottom_data,
+            1. / (spatial_dim), bottom_data,
             spatial_sum_multiplier_.cpu_data(), 0.,
             mean_.mutable_cpu_data());
-    else{
+  } else {
         caffe_cpu_gemv<Dtype>(CblasNoTrans, channels_ * num, spatial_dim,
             1. / (num * spatial_dim), bottom_data,
             spatial_sum_multiplier_.cpu_data(), 0.,
@@ -155,11 +155,11 @@ void BatchNormLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
   }
 
   // subtract mean
-  if (use_instance_norm_)
+  if (use_instance_norm_) {
     caffe_cpu_gemm<Dtype>(CblasNoTrans, CblasNoTrans, channels_ * num,
         spatial_dim, 1, -1, mean_.cpu_data(),
         spatial_sum_multiplier_.cpu_data(), 1., top_data);
-  else{
+  } else {
     caffe_cpu_gemm<Dtype>(CblasNoTrans, CblasNoTrans, num, channels_, 1, 1,
         batch_sum_multiplier_.cpu_data(), mean_.cpu_data(), 0.,
         num_by_chans_.mutable_cpu_data());
@@ -173,12 +173,12 @@ void BatchNormLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
 
     caffe_powx(top[0]->count(), top_data, Dtype(2),
         temp_.mutable_cpu_data());  // (X-EX)^2
-    if (use_instance_norm_)
+    if (use_instance_norm_) {
         caffe_cpu_gemv<Dtype>(CblasNoTrans, channels_ * num, spatial_dim,
             1. / (spatial_dim), temp_.cpu_data(),
             spatial_sum_multiplier_.cpu_data(), 0.,
             variance_.mutable_cpu_data());
-    else{
+    } else {
         caffe_cpu_gemv<Dtype>(CblasNoTrans, channels_ * num, spatial_dim,
             1. / (num * spatial_dim), temp_.cpu_data(),
             spatial_sum_multiplier_.cpu_data(), 0.,
@@ -210,11 +210,11 @@ void BatchNormLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
   caffe_add_scalar(variance_.count(), eps_, variance_.mutable_cpu_data());
   caffe_powx(variance_.count(), variance_.cpu_data(), Dtype(0.5),
              variance_.mutable_cpu_data());
-  if (use_instance_norm_)
+  if (use_instance_norm_) {
     caffe_cpu_gemm<Dtype>(CblasNoTrans, CblasNoTrans, channels_ * num,
         spatial_dim, 1, 1., variance_.cpu_data(),
         spatial_sum_multiplier_.cpu_data(), 0., temp_.mutable_cpu_data());
-  else{
+  } else {
   // replicate variance to input size
     caffe_cpu_gemm<Dtype>(CblasNoTrans, CblasNoTrans, num, channels_, 1, 1,
         batch_sum_multiplier_.cpu_data(), variance_.cpu_data(), 0.,
@@ -266,8 +266,7 @@ void BatchNormLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
   caffe_cpu_gemv<Dtype>(CblasNoTrans, channels_ * num, spatial_dim, 1.,
       bottom_diff, spatial_sum_multiplier_.cpu_data(), 0.,
       num_by_chans_.mutable_cpu_data());
-  if (!use_instance_norm_)
-  {
+  if (!use_instance_norm_) {
     caffe_cpu_gemv<Dtype>(CblasTrans, num, channels_, 1.,
         num_by_chans_.cpu_data(), batch_sum_multiplier_.cpu_data(), 0.,
         mean_.mutable_cpu_data());
@@ -288,8 +287,7 @@ void BatchNormLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
   caffe_cpu_gemv<Dtype>(CblasNoTrans, channels_ * num, spatial_dim, 1.,
       top_diff, spatial_sum_multiplier_.cpu_data(), 0.,
       num_by_chans_.mutable_cpu_data());
-  if (!use_instance_norm_)
-  {
+  if (!use_instance_norm_) {
     caffe_cpu_gemv<Dtype>(CblasTrans, num, channels_, 1.,
         num_by_chans_.cpu_data(), batch_sum_multiplier_.cpu_data(), 0.,
         mean_.mutable_cpu_data());
