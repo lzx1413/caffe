@@ -65,6 +65,7 @@ class BatchNormLayer : public Layer<Dtype> {
   bool use_instance_norm_;
   Dtype moving_average_fraction_;
   int channels_;
+  int pre_batch_size_;
   int batch_size_;
   Dtype eps_;
 

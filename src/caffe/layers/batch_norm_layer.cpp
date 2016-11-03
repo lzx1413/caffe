@@ -23,6 +23,7 @@ void BatchNormLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
   eps_ = param.eps();
   if (this->blobs_.size() > 0) {
     LOG(INFO) << "Skipping parameter initialization";
+    pre_batch_size_ = this->blobs_[0]->shape(0);
   } else {
     this->blobs_.resize(3);
     vector<int> sz;
@@ -37,6 +38,7 @@ void BatchNormLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
     for (int i = 0; i < 3; ++i) {
       caffe_set(this->blobs_[i]->count(), Dtype(0),
                 this->blobs_[i]->mutable_cpu_data());
+    pre_batch_size_ = this->blobs_[0]->shape(0);
     }
   }
   // Mask statistics from optimization by setting local learning rates
@@ -89,7 +91,6 @@ void BatchNormLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom,
         batch_sum_multiplier_.mutable_cpu_data());
   }
 }
-
 template <typename Dtype>
 void BatchNormLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     const vector<Blob<Dtype>*>& top) {
@@ -101,7 +102,32 @@ void BatchNormLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
   if (bottom[0] != top[0]) {
     caffe_copy(bottom[0]->count(), bottom_data, top_data);
   }
+  if (pre_batch_size_ != num && use_instance_norm_){
+        vector<int> sz;
+        sz.push_back(num*channels_);
+        vector<int> tmp_size;
+        tmp_size.push_back(channels_);
+        Blob<Dtype> tmp_blob;
+        tmp_blob.Reshape(tmp_size);
+        caffe_cpu_gemv<Dtype>(CblasTrans,pre_batch_size_, channels_, 1.,
+            this->blobs_[0]->cpu_data(), batch_sum_multiplier_.cpu_data(), 0.,
+            tmp_blob.mutable_cpu_data());
+        this->blobs_[0]->Reshape(sz);
+        caffe_cpu_gemm<Dtype>(CblasNoTrans, CblasNoTrans, num, channels_, 1, 1,
+            batch_sum_multiplier_.cpu_data(), tmp_blob.cpu_data(), 0.,
+            this->blobs_[0]->mutable_cpu_data());
 
+        caffe_cpu_gemv<Dtype>(CblasTrans,pre_batch_size_, channels_, 1.,
+            this->blobs_[1]->cpu_data(), batch_sum_multiplier_.cpu_data(), 0.,
+            tmp_blob.mutable_cpu_data());
+        this->blobs_[1]->Reshape(sz);
+        caffe_cpu_gemm<Dtype>(CblasNoTrans, CblasNoTrans, num, channels_, 1, 1,
+            batch_sum_multiplier_.cpu_data(), tmp_blob.cpu_data(), 0.,
+            this->blobs_[1]->mutable_cpu_data());
+        mean_.Reshape(sz);
+        variance_.Reshape(sz);
+        pre_batch_size_ = num;
+    }
   if (use_global_stats_) {
     // use the stored mean/variance estimates.
     const Dtype scale_factor = this->blobs_[2]->cpu_data()[0] == 0 ?
