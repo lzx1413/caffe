@@ -5,6 +5,7 @@
 #include "caffe/layers/base_conv_layer.hpp"
 #include "caffe/util/im2col.hpp"
 #include "caffe/util/math_functions.hpp"
+#include "caffe/util/deformable_im2col.hpp"
 
 namespace caffe {
 
@@ -119,6 +120,7 @@ void BaseConvolutionLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
   num_output_ = this->layer_param_.convolution_param().num_output();
   CHECK_GT(num_output_, 0);
   group_ = this->layer_param_.convolution_param().group();
+  deform_group_ = this->layer_param_.convolution_param().deform_group();
   CHECK_EQ(channels_ % group_, 0);
   CHECK_EQ(num_output_ % group_, 0)
       << "Number of output should be multiples of group.";
@@ -324,19 +326,24 @@ void BaseConvolutionLayer<Dtype>::backward_cpu_bias(Dtype* bias,
 
 template <typename Dtype>
 void BaseConvolutionLayer<Dtype>::forward_gpu_gemm(const Dtype* input,
-    const Dtype* weights, Dtype* output, bool skip_im2col) {
+    const Dtype* weights, Dtype* output, bool skip_im2col, bool is_deformable,const Dtype* offset ) {
   const Dtype* col_buff = input;
-  if (!is_1x1_) {
-    if (!skip_im2col) {
-      conv_im2col_gpu(input, col_buffer_.mutable_gpu_data());
-    }
-    col_buff = col_buffer_.gpu_data();
+  if (is_deformable) {
+    conv_deformable_im2col_gpu(input,offset,col_buffer_.mutable_gpu_data());
   }
-  for (int g = 0; g < group_; ++g) {
-    caffe_gpu_gemm<Dtype>(CblasNoTrans, CblasNoTrans, conv_out_channels_ /
-        group_, conv_out_spatial_dim_, kernel_dim_,
-        (Dtype)1., weights + weight_offset_ * g, col_buff + col_offset_ * g,
-        (Dtype)0., output + output_offset_ * g);
+  else{
+    if (!is_1x1_) {
+      if (!skip_im2col) {
+        conv_im2col_gpu(input, col_buffer_.mutable_gpu_data());
+      }
+      col_buff = col_buffer_.gpu_data();
+    }
+    for (int g = 0; g < group_; ++g) {
+      caffe_gpu_gemm<Dtype>(CblasNoTrans, CblasNoTrans, conv_out_channels_ /
+          group_, conv_out_spatial_dim_, kernel_dim_,
+          (Dtype)1., weights + weight_offset_ * g, col_buff + col_offset_ * g,
+          (Dtype)0., output + output_offset_ * g);
+    }
   }
 }
 
@@ -364,6 +371,21 @@ void BaseConvolutionLayer<Dtype>::backward_gpu_gemm(const Dtype* output,
   if (!is_1x1_) {
     conv_col2im_gpu(col_buff, input);
   }
+}
+
+template <typename Dtype>
+void BaseConvolutionLayer<Dtype>::backward_gpu_gemm_deform(const Dtype*output,const Dtype* data_im,const Dtype* offset,
+  const Dtype*weights, Dtype*input_diff,Dtype* offset_diff) {
+    Dtype* col_buff = col_buffer_.mutable_gpu_data();
+    for (int g = 0; g < group_; ++g) {
+    caffe_gpu_gemm<Dtype>(CblasTrans, CblasNoTrans, kernel_dim_,
+        conv_out_spatial_dim_, conv_out_channels_ / group_,
+        (Dtype)1., weights + weight_offset_ * g, output + output_offset_ * g,
+        (Dtype)0., col_buff + col_offset_ * g);
+  }
+
+  conv_deformable_col2im_gpu(col_buff,offset,input_diff);
+  conv_deformable_col2im_coord_gpu(col_buff,data_im,offset,offset_diff);
 }
 
 template <typename Dtype>

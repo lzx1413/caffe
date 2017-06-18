@@ -306,7 +306,7 @@ message ParamSpec {
 // NOTE
 // Update the next available ID when you add a new LayerParameter field.
 //
-// LayerParameter next available layer-specific ID: 148 (last added: recurrent_param)
+// LayerParameter next available layer-specific ID: 147 (last added: recurrent_param)
 message LayerParameter {
   optional string name = 1; // the layer name
   optional string type = 2; // the layer type
@@ -361,7 +361,6 @@ message LayerParameter {
   optional AccuracyParameter accuracy_param = 102;
   optional ArgMaxParameter argmax_param = 103;
   optional BatchNormParameter batch_norm_param = 139;
-  optional InstanceBatchNormParameter instance_batch_norm_param = 147;
   optional BiasParameter bias_param = 141;
   optional ConcatParameter concat_param = 104;
   optional ContrastiveLossParameter contrastive_loss_param = 105;
@@ -508,17 +507,9 @@ message BatchNormParameter {
   // Small value to add to the variance estimate so that we don't divide by
   // zero.
   optional float eps = 3 [default = 1e-5];
-}
-message InstanceBatchNormParameter {
-  // If false, accumulate global mean/variance values via a moving average. If
-  // true, use those accumulated values instead of computing mean/variance
-  // across the batch.
-  optional bool use_global_stats = 1;
-  // How much does the moving average decay each iteration?
-  optional float moving_average_fraction = 2 [default = .999];
-  // Small value to add to the variance estimate so that we don't divide by
-  // zero.
-  optional float eps = 3 [default = 1e-5];
+  //if false,mean and variance will be calculated across instances. If true ,mean and variance will be 
+  //calculated in single instance
+  optional bool use_instance_norm = 4 [default = false];
 }
 
 message BiasParameter {
@@ -616,6 +607,8 @@ message ConvolutionParameter {
   // implementation; for input blobs with num_axes != 2, this option is
   // ignored and the ND implementation will be used.)
   optional bool force_nd_im2col = 17 [default = false];
+  //deformable conv group
+  optional int32 deform_group = 19 [default = 1];
 }
 
 message CropParameter {
@@ -1282,7 +1275,6 @@ message V1LayerParameter {
   optional DropoutParameter dropout_param = 12;
   optional DummyDataParameter dummy_data_param = 26;
   optional EltwiseParameter eltwise_param = 24;
-  optional InstanceBatchNormParameter instance_batch_norm_param = 147;
   optional ExpParameter exp_param = 41;
   optional HDF5DataParameter hdf5_data_param = 13;
   optional HDF5OutputParameter hdf5_output_param = 14;

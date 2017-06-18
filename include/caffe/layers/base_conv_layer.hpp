@@ -7,6 +7,7 @@
 #include "caffe/layer.hpp"
 #include "caffe/proto/caffe.pb.h"
 #include "caffe/util/im2col.hpp"
+#include "caffe/util/deformable_im2col.hpp"
 
 namespace caffe {
 
@@ -43,13 +44,17 @@ class BaseConvolutionLayer : public Layer<Dtype> {
 
 #ifndef CPU_ONLY
   void forward_gpu_gemm(const Dtype* col_input, const Dtype* weights,
-      Dtype* output, bool skip_im2col = false);
+      Dtype* output, bool skip_im2col = false, bool is_deformable = false,const Dtype* offset = NULL);
   void forward_gpu_bias(Dtype* output, const Dtype* bias);
   void backward_gpu_gemm(const Dtype* input, const Dtype* weights,
       Dtype* col_output);
+  void backward_gpu_gemm_deform(const Dtype* input, const Dtype* weights,
+      Dtype* col_output, Dtype* offset_diff);
   void weight_gpu_gemm(const Dtype* col_input, const Dtype* output, Dtype*
       weights);
   void backward_gpu_bias(Dtype* bias, const Dtype* input);
+  void backward_gpu_gemm_deform(const Dtype*output,const Dtype* data_im,const Dtype* offset,
+  const Dtype*weights, Dtype*input_diff,Dtype* offset_diff);
 #endif
 
   /// @brief The spatial dimensions of the input.
@@ -75,6 +80,7 @@ class BaseConvolutionLayer : public Layer<Dtype> {
   /// @brief The spatial dimensions of the col_buffer.
   vector<int> col_buffer_shape_;
   /// @brief The spatial dimensions of the output.
+  int  deform_group_;
   vector<int> output_shape_;
   const vector<int>* bottom_shape_;
 
@@ -138,6 +144,24 @@ class BaseConvolutionLayer : public Layer<Dtype> {
           kernel_shape_.gpu_data(), pad_.gpu_data(),
           stride_.gpu_data(), dilation_.gpu_data(), col_buff);
     }
+  }
+  inline void conv_deformable_im2col_gpu(const Dtype* data, const Dtype* offset, Dtype* col_buff) {
+      deformable_im2col(data, 
+            offset,2,conv_input_shape_.gpu_data(),col_buffer_.gpu_shape(),kernel_shape_.gpu_data(),
+            pad_.gpu_data(),stride_.gpu_data(),dilation_.gpu_data(),deform_group_,col_buff);
+  }
+  inline void conv_deformable_col2im_gpu(const Dtype* col_buff, const Dtype* offset, Dtype* data_diff) {
+      deformable_col2im(col_buff, 
+            offset,2,conv_input_shape_.gpu_data(),col_buffer_.gpu_shape(),kernel_shape_.gpu_data(),
+            pad_.gpu_data(),stride_.gpu_data(),dilation_.gpu_data(),deform_group_,data_diff);
+  }
+  inline void conv_deformable_col2im_coord_gpu(const Dtype* col_buff,const Dtype* data_im, const Dtype* offset,Dtype* offset_diff) {
+      deformable_col2im_coord(
+      col_buff, data_im, offset,2, conv_input_shape_.gpu_data(),
+      col_buffer_.gpu_shape(), kernel_shape_.gpu_data(),
+      pad_.gpu_data(), stride_.gpu_data(),
+      dilation_.gpu_data(),deform_group_, offset_diff);
+
   }
   inline void conv_col2im_gpu(const Dtype* col_buff, Dtype* data) {
     if (!force_nd_im2col_ && num_spatial_axes_ == 2) {
