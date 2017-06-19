@@ -242,6 +242,10 @@ void BaseConvolutionLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom,
   }
   col_buffer_.Reshape(col_buffer_shape_);
   bottom_dim_ = bottom[0]->count(channel_axis_);
+  //deformable offset
+  if (bottom.size()>1) {
+  offset_dim_ = bottom[1]->count(channel_axis_);
+}
   top_dim_ = top[0]->count(channel_axis_);
   num_kernels_im2col_ = conv_in_channels_ * conv_out_spatial_dim_;
   num_kernels_col2im_ = reverse_dimensions() ? top_dim_ : bottom_dim_;

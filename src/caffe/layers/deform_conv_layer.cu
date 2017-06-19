@@ -30,7 +30,7 @@ void DeformConvolutionLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bott
   Dtype* top_data = top[0]->mutable_gpu_data();
   for(int n = 0;n< this->num_; ++n){
       this-> forward_gpu_gemm(img_data+n*this->bottom_dim_,weight,top_data+n*this->top_dim_,
-        false,true,offset_data);
+        false,true,offset_data+n*this->offset_dim_);
       if (this->bias_term_) {
         const Dtype* bias = this->blobs_[1]->gpu_data();
         this->forward_gpu_bias(top_data + n * this->top_dim_, bias);
@@ -61,8 +61,8 @@ void DeformConvolutionLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top
   const Dtype* img_data = bottom[0]->gpu_data();
   const Dtype* offset_data = bottom[1]->gpu_data();
   Dtype* weight_diff = this->blobs_[0]->mutable_gpu_diff();
-  Dtype* image_diff = bottom[0]->mutable_gpu_data();
-  Dtype* offset_diff = bottom[1]->mutable_gpu_data();
+  Dtype* image_diff = bottom[0]->mutable_gpu_diff();
+  Dtype* offset_diff = bottom[1]->mutable_gpu_diff();
   const Dtype* top_diff = top[0]->gpu_diff();
     // Bias gradient, if necessary.
   if (this->bias_term_ && this->param_propagate_down_[1]) {
@@ -79,8 +79,8 @@ void DeformConvolutionLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top
               top_diff + n * this->top_dim_, weight_diff);
         }
         // gradient w.r.t. bottom data, if necessary.
-        this->backward_gpu_gemm_deform(top_diff+n*this->top_dim_,img_data+n*this->bottom_dim_,offset_data+n*this->bottom_dim_,
-          weight,image_diff+n*this->bottom_dim_,offset_diff+n*this->bottom_dim_);
+        this->backward_gpu_gemm_deform(top_diff+n*this->top_dim_,img_data+n*this->bottom_dim_,offset_data+n*this->offset_dim_,
+          weight,image_diff+n*this->bottom_dim_,offset_diff+n*this->offset_dim_);
 
       }
 

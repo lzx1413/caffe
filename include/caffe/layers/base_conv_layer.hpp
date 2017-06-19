@@ -86,6 +86,7 @@ class BaseConvolutionLayer : public Layer<Dtype> {
 
   int num_spatial_axes_;
   int bottom_dim_;
+  int offset_dim_;
   int top_dim_;
 
   int channel_axis_;
@@ -160,8 +161,7 @@ class BaseConvolutionLayer : public Layer<Dtype> {
       col_buff, data_im, offset,2, conv_input_shape_.gpu_data(),
       col_buffer_.gpu_shape(), kernel_shape_.gpu_data(),
       pad_.gpu_data(), stride_.gpu_data(),
-      dilation_.gpu_data(),deform_group_, offset_diff);
-
+      dilation_.gpu_data(),deform_group_, offset_diff); 
   }
   inline void conv_col2im_gpu(const Dtype* col_buff, Dtype* data) {
     if (!force_nd_im2col_ && num_spatial_axes_ == 2) {
