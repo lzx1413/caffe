@@ -27,7 +27,7 @@ class BaseConvolutionLayer : public Layer<Dtype> {
 
   virtual inline int MinBottomBlobs() const { return 1; }
   virtual inline int MinTopBlobs() const { return 1; }
-  virtual inline bool EqualNumBottomTopBlobs() const { return true; }
+  virtual inline bool EqualNumBottomTopBlobs() const { return false; }
 
  protected:
   // Helper functions that abstract away the column buffer and gemm arguments.
@@ -148,20 +148,20 @@ class BaseConvolutionLayer : public Layer<Dtype> {
   }
   inline void conv_deformable_im2col_gpu(const Dtype* data, const Dtype* offset, Dtype* col_buff) {
       deformable_im2col(data, 
-            offset,2,conv_input_shape_.gpu_data(),col_buffer_.gpu_shape(),kernel_shape_.gpu_data(),
-            pad_.gpu_data(),stride_.gpu_data(),dilation_.gpu_data(),deform_group_,col_buff);
+            offset,2,conv_input_shape_.cpu_data(),col_buffer_shape_.data(),kernel_shape_.cpu_data(),
+            pad_.cpu_data(),stride_.cpu_data(),dilation_.cpu_data(),deform_group_,col_buff);
   }
   inline void conv_deformable_col2im_gpu(const Dtype* col_buff, const Dtype* offset, Dtype* data_diff) {
       deformable_col2im(col_buff, 
-            offset,2,conv_input_shape_.gpu_data(),col_buffer_.gpu_shape(),kernel_shape_.gpu_data(),
-            pad_.gpu_data(),stride_.gpu_data(),dilation_.gpu_data(),deform_group_,data_diff);
+            offset,2,conv_input_shape_.cpu_data(),col_buffer_shape_.data(),kernel_shape_.cpu_data(),
+            pad_.cpu_data(),stride_.cpu_data(),dilation_.cpu_data(),deform_group_,data_diff);
   }
   inline void conv_deformable_col2im_coord_gpu(const Dtype* col_buff,const Dtype* data_im, const Dtype* offset,Dtype* offset_diff) {
       deformable_col2im_coord(
-      col_buff, data_im, offset,2, conv_input_shape_.gpu_data(),
-      col_buffer_.gpu_shape(), kernel_shape_.gpu_data(),
-      pad_.gpu_data(), stride_.gpu_data(),
-      dilation_.gpu_data(),deform_group_, offset_diff); 
+      col_buff, data_im, offset,2, conv_input_shape_.cpu_data(),
+      col_buffer_shape_.data(), kernel_shape_.cpu_data(),
+      pad_.cpu_data(), stride_.cpu_data(),
+      dilation_.cpu_data(),deform_group_, offset_diff); 
   }
   inline void conv_col2im_gpu(const Dtype* col_buff, Dtype* data) {
     if (!force_nd_im2col_ && num_spatial_axes_ == 2) {

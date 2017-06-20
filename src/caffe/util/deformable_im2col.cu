@@ -314,7 +314,7 @@ void deformable_im2col(
   const int deformable_group, Dtype* data_col) {
   // num_axes should be smaller than block size
   //int num_spatial_axes = kernel_shape.ndim();
-  DCHECK_LT(num_spatial_axes, CAFFE_CUDA_NUM_THREADS);
+  //DCHECK_LT(num_spatial_axes, CAFFE_CUDA_NUM_THREADS);
   int channel_per_deformable_group = im_shape[1] / deformable_group;
   int height_col = (im_shape[2] + 2 * pad[0] -
       (dilation[0] * (kernel_shape[0] - 1) + 1)) / stride[0] + 1;
@@ -327,7 +327,7 @@ void deformable_im2col(
         <<< CAFFE_GET_BLOCKS(num_kernels), CAFFE_CUDA_NUM_THREADS>>>(
         num_kernels, data_im, data_offset, im_shape[2], im_shape[3], kernel_shape[0], kernel_shape[1],
         pad[0], pad[1], stride[0], stride[1], dilation[0], dilation[1], channel_per_deformable_group,
-        col_shape[1], col_shape[2], data_col);
+        height_col, width_col, data_col);
     //MSHADOW_CUDA_POST_KERNEL_CHECK(deformable_im2col_gpu_kernel);
     break;
   default:
@@ -439,7 +439,7 @@ void deformable_col2im(
     deformable_col2im_gpu_kernel<Dtype> <<<CAFFE_GET_BLOCKS(num_kernels), CAFFE_CUDA_NUM_THREADS>>>(
         num_kernels, data_col, data_offset, im_shape[1], im_shape[2], im_shape[3],
         kernel_shape[0], kernel_shape[1], pad[0], pad[1], stride[0], stride[1],
-        dilation[0], dilation[1], channel_per_deformable_group, col_shape[1], col_shape[2], grad_im);
+        dilation[0], dilation[1], channel_per_deformable_group, height_col, width_col, grad_im);
    // MSHADOW_CUDA_POST_KERNEL_CHECK(deformable_col2im_gpu_kernel);
     break;
   default:

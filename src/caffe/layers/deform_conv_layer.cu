@@ -116,6 +116,8 @@ void DeformConvolutionLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top
   }
 }
 
+//INSTANTIATE_CLASS(DeformConvolutionLayer);
+//REGISTER_LAYER_CLASS(DeformConvolution);
 INSTANTIATE_LAYER_GPU_FUNCS(DeformConvolutionLayer);
 
 }  // namespace caffe

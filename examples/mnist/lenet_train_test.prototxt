@@ -45,9 +45,60 @@ layer {
     lr_mult: 2
   }
   convolution_param {
-    num_output: 20
-    kernel_size: 5
+    num_output: 128
+    kernel_size: 3
     stride: 1
+    pad: 1
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "offset1"
+  type: "Convolution"
+  bottom: "conv1"
+  top: "offset1"
+  param {
+    lr_mult: 1
+  }
+  param {
+    lr_mult: 2
+  }
+  convolution_param {
+    num_output: 18
+    kernel_size: 3
+    stride: 1
+    pad: 1
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "deform1"
+  type: "DeformConvolution"
+  bottom: "conv1"
+  bottom: "offset1"
+  top: "deform1"
+  param {
+    lr_mult: 1
+  }
+  param {
+    lr_mult: 2
+  }
+  convolution_param {
+    num_output: 128
+    kernel_size: 3
+    stride: 1
+    pad: 2
+    deform_group: 4
     weight_filler {
       type: "xavier"
     }
@@ -59,7 +110,7 @@ layer {
 layer {
   name: "pool1"
   type: "Pooling"
-  bottom: "conv1"
+  bottom: "deform1"
   top: "pool1"
   pooling_param {
     pool: MAX
