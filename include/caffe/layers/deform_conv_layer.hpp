@@ -77,6 +77,8 @@ class DeformConvolutionLayer : public BaseConvolutionLayer<Dtype> {
       const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom);
   virtual inline bool reverse_dimensions() { return false; }
   virtual void compute_output_shape();
+  private:
+  int deform_group_;
 };
 
 }  // namespace caffe
